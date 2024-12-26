@@ -26,26 +26,41 @@ const checkVisited = async function () {
 };
 
 app.get("/", async (req, res) => {
-  //Write your code here.
-  const result = await db.query("select country_code from visited_countries");
-  let countries = [];
-  result.rows.forEach((ele) => countries.push(ele.country_code));
-  // console.log(countries);
+  const countries = await checkVisited();
   res.render("index.ejs", { countries: countries, total: countries.length });
-  // db.end();
 });
 
 app.post("/add", async (req, res) => {
   const country = req.body.country;
-  const result1 = await db.query(
-    `select country_code from countries where country_name = '${country}'`
-  );
-  console.log(result1.rows);
-  if (result1.rows.length !== 0)
-    await db.query(`insert into visited_countries (country_code) values ($1)`, [
-      `${result1.rows[0].country_code}`,
-    ]);
-  res.redirect("/");
+  try {
+    const result1 = await db.query(
+      `select country_code from countries where lower(country_name) like '%${country.toLowerCase()}%'`
+    );
+
+    const data = result1.rows[0];
+    const countryCode = data.country_code;
+    try {
+      await db.query(
+        `insert into visited_countries (country_code) values ($1)`,
+        [countryCode]
+      );
+      res.redirect("/");
+    } catch (err) {
+      const countries = await checkVisited();
+      res.render("index.ejs", {
+        countries: countries,
+        total: countries.length,
+        error: "Country already added.Try again",
+      });
+    }
+  } catch (err) {
+    const countries = await checkVisited();
+    res.render("index.ejs", {
+      countries: countries,
+      total: countries.length,
+      error: "Country does not exit.Try again",
+    });
+  }
 });
 
 app.listen(port, () => {
