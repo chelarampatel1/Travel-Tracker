@@ -19,7 +19,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 const checkVisited = async function () {
-  const result = await db.query("select country_code from visited_countries");
+  const result = await db.query(
+    "select country_code from visited_countries order by id asc"
+  );
   let countries = [];
   result.rows.forEach((ele) => countries.push(ele.country_code));
   return countries;
